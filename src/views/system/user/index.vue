@@ -261,7 +261,7 @@ export default{
             //转换为对象
             this.form.dept = {id: node.id}
             this.dept = node.name
-            // dept里面存放的是目前的名称
+            // dept里面存放的是当前名称
             console.log(this.dept)
             this.$refs.deptSelect.visible = false
         },

@@ -26,56 +26,101 @@
                 </slot>
             </span>
         </div>
-        <!-- 角色显示表格 -->
-        <el-dialog title="角色信息" :visible.sync="dialogFormVisible" width="650px">
-            <el-form ref="form" :model="form" :rules="rules" size="small" label-width="66px">
-                <el-form-item label="角色名称" prop="name">
-                    <el-input v-model="form.name"></el-input>
-                </el-form-item>
-                <el-form-item label="角色级别" prop="roleLevel">
-                    <el-input-number v-model.number="form.level" :min="1" :max="10" label="角色级别"></el-input-number>
-                </el-form-item>
-                <el-form-item label="数据范围" prop="dataScope">
-                    <!-- select 绑定form -->
-                    <el-select v-model="form.dataScope" @change="changeScope()">
-                        <!-- option 绑定显示所有数据的一项 -->
-                        <el-option
-                        v-for="item in dataScope"
-                        :key="item"
-                        :value="item"
-                        :label="item"
-                        ></el-option>
-                    </el-select>
-                </el-form-item>
-                <el-form-item label="数据权限" prop="dataRight" v-if="form.dataScope==='自定义'" >
-                    <!-- 先绑定data中的部门 -->
-                    <treeselect
-                        v-model="deptDatas"
-                        :load-options="loadDepts"
-                        :options="depts"
-                        multiple
-                        style="width: 380px"
-                        placeholder="请选择"
-                    />
-                </el-form-item>
-                <el-form-item label="描述信息" prop="description">
-                    <el-input v-model="form.description"></el-input>
-                </el-form-item>
-            </el-form>
-            <span slot="footer" class="dialog-footer">
-                <el-button @click="dialogFormVisible = false">取 消</el-button>
-                <el-button type="primary" @click="updateRole(form)">确 定</el-button>
-            </span>
-        </el-dialog>
-        <el-table :data="tableData" style="width: 100%" @selection-change="handleSelectionChange">
-            <!-- 表格的选择框 --> 
-            <el-table-column type="selection" width="55px"></el-table-column>
-            <el-table-column fixed prop="name" label="名称" width="150"></el-table-column>
-            <el-table-column prop="dataScope" label="数据权限" width="150"></el-table-column>
-            <el-table-column prop="level" label="角色级别" width="150"></el-table-column>
-            <el-table-column prop="description" label="描述" width="150"></el-table-column>
-            <el-table-column prop="createTime" label="创建日期" width="150"></el-table-column>
-        </el-table>
+        <el-row :gutter="15">
+            <!-- 角色显示表格 -->
+            <el-col :xs="24" :sm="24" :md="16" :lg="16" :xl="17" style="margin-bottom: 10px">
+                <el-card class="box-card" shadow="never">
+                    <div slot="header" class="clearfix">
+                        <span class="role-span">角色列表</span>
+                    </div>
+                    <!-- 选中复选框和该行时都可以触发 -->
+                    <el-table :data="tableData" style="width: 100%" @selection-change="handleSelectionChange" highlight-current-row @current-change="handlecurrentchange">
+                        <!-- 表格的选择框 --> 
+                        <el-table-column type="selection" width="55px"></el-table-column>
+                        <el-table-column fixed prop="name" label="名称" width="150"></el-table-column>
+                        <el-table-column prop="dataScope" label="数据权限" width="150"></el-table-column>
+                        <el-table-column prop="level" label="角色级别" width="150"></el-table-column>
+                        <el-table-column prop="description" label="描述" width="150"></el-table-column>
+                        <el-table-column prop="createTime" label="创建日期" width="150"></el-table-column>
+                    </el-table>
+                </el-card>
+            </el-col> 
+
+            <!-- 菜单权限管理框 -->
+            <el-col :xs="24" :sm="24" :md="8" :lg="8" :xl="7">
+                <el-card class="box-card" shadow="never">
+                    <div slot="header" class="clearfix">
+                        <el-tooltip class="item" effect="dark" content="选择指定角色分配菜单" placement="top">
+                            <span class="role-span">菜单分配</span>
+                        </el-tooltip>
+                        <el-button
+                        :disabled="!showButton"
+                        icon="el-icon-check"
+                        size="mini"
+                        style="float: right; padding: 6px 9px"
+                        type="primary"
+                        @click="saveMenu"
+                        >保存</el-button>
+                    </div>
+
+                    <el-tree
+                    ref="menu"
+                    lazy
+                    :defalut-checked-keys="menuIds"
+                    :load="getMenuDatas"
+                    :props="defaultProps"
+                    show-checkbox
+                    check-strictly
+                    according
+                    node-key="id"
+                    @check="menuChange"
+                    >
+                    </el-tree>
+                </el-card>
+            </el-col>
+
+            <!-- 角色新增的表单 -->
+            <el-dialog title="角色信息" :visible.sync="dialogFormVisible" width="650px">
+                <el-form ref="form" :model="form" :rules="rules" size="small" label-width="66px">
+                    <el-form-item label="角色名称" prop="name">
+                        <el-input v-model="form.name"></el-input>
+                    </el-form-item>
+                    <el-form-item label="角色级别" prop="roleLevel">
+                        <el-input-number v-model.number="form.level" :min="1" :max="10" label="角色级别"></el-input-number>
+                    </el-form-item>
+                    <el-form-item label="数据范围" prop="dataScope">
+                        <!-- select 绑定form -->
+                        <el-select v-model="form.dataScope" @change="changeScope()">
+                            <!-- option 绑定显示所有数据的一项 -->
+                            <el-option
+                            v-for="item in dataScope"
+                            :key="item"
+                            :value="item"
+                            :label="item"
+                            ></el-option>
+                        </el-select>
+                    </el-form-item>
+                    <el-form-item label="数据权限" prop="dataRight" v-if="form.dataScope==='自定义'" >
+                        <!-- 先绑定data中的部门 -->
+                        <treeselect
+                            v-model="deptDatas"
+                            :load-options="loadDepts"
+                            :options="depts"
+                            multiple
+                            style="width: 380px"
+                            placeholder="请选择"
+                        />
+                    </el-form-item>
+                    <el-form-item label="描述信息" prop="description">
+                        <el-input v-model="form.description"></el-input>
+                    </el-form-item>
+                </el-form>
+                <span slot="footer" class="dialog-footer">
+                    <el-button @click="dialogFormVisible = false">取 消</el-button>
+                    <el-button type="primary" @click="updateRole(form)">确 定</el-button>
+                </span>
+            </el-dialog>
+        </el-row>
     </div>
 </template>
 
@@ -86,6 +131,7 @@ import Treeselect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import {LOAD_CHILDREN_OPTIONS} from '@riophae/vue-treeselect'
 import Element from 'element-ui'
+import {getChild} from '@/api/menu'
 
 export default{
     name: 'Role',
@@ -95,6 +141,17 @@ export default{
     },
     data(){
         return{
+            // 菜单权限相关值
+            menuIds: [],
+            // 菜单权限树的结构
+            defaultProps: { children: 'children', label: 'label', isLeaf: 'leaf' },
+            menus: [],
+            // 保存按钮显示与否
+            showButton: false,
+            // 当前选中的角色id
+            currentId: [],
+
+            // 角色相关值
             selectData: [],
             deptDatas: [],
             depts: [],
@@ -218,6 +275,79 @@ export default{
                 this.dialogFormVisible = false
                 Element.Message.success("操作成功")
                 this.getRoleList()
+            })
+        },
+
+        // 菜单相关方法
+        getMenuDatas(node,resolve){
+            let pid = node.level === 0 ? 0 :node.data.id
+            this.$request.get('api/menus/lazy',{params:{pid: pid}}).then(res => {
+                this.menus = res
+                resolve(this.menus)
+            })
+        },
+
+        // 改变对menu的选择时候
+        menuChange(menu){
+            // 要在点击该节点时也把子节点选中，所以我们要获取所有子节点
+            getChild(menu.id).then(childIds => {
+                // 后端响应数据时 id集合
+                console.log(childIds)
+                // menuIds 里保存 目前被选中的所有菜单项的id
+                if(this.menuIds.indexOf(menu.id) !== -1){
+                    // 之前已经被选中，删除
+                    for(let i = 0; i < childIds.length; i++ ){
+                        const index = this.menuIds.indexOf(childIds[i])
+                        if(index !== -1){
+                            // splice方法变更数组，包括增加，删除，修改
+                            this.menuIds.splice(index,1)
+                        }
+                    }
+                }else{
+                    for(let i = 0; i < childIds.length; i++ ){
+                        const index = this.menuIds.indexOf(childIds[i])
+                        // 没有被包含在数组里的值被 增加进去
+                        if(index === -1){
+                            this.menuIds.push(childIds[i])
+                        }
+                    }
+                }
+                // 通过ref拿到tree的实例，并把menuIds里对应的值添加进去
+                this.$refs.menu.setCheckedKeys(this.menuIds)
+            })
+        },
+        handlecurrentchange(row){
+            // console.log(row)
+            if(row){
+                // 首先清空
+                this.menuIds = []
+                this.$refs.menu.setCheckedKeys(this.menuIds)
+                // 找到当前选中角色的角色id
+                this.currentId = row.id
+                
+                this.showButton = true
+
+                row.menus.forEach(data => {
+                    this.menuIds.push(data.id)
+                })
+                this.$refs.menu.setCheckedKeys(this.menuIds)
+                console.log(this.menuIds)
+            }
+        },
+        saveMenu(){
+            // ES6 构造对象
+            let data = {id: this.currentId,menus: []}
+            // 将menuId里的值添加到role对象里
+            this.menuIds.forEach(id =>{
+                const menu = {id: id}
+                data.menus.push(menu)
+            })
+            console.log(data)
+            this.$request.put('api/roles/menu',data).then(() => {
+                Element.Message.success('保存当前角色新的菜单列表成功')
+                this.getRoleList()
+            }).catch(err => {
+                console.log(err)
             })
         }
     }
