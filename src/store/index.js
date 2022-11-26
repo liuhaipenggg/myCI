@@ -2,6 +2,7 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import {getToken, removeToken, setToken} from "@/utils/auth";
 import {getInfo, logout,login} from "@/api/login";
+// import { reject } from 'core-js/fn/promise';
 
 Vue.use(Vuex)
 
@@ -27,19 +28,24 @@ export default new Vuex.Store({
         }
     },
     actions: {
-        // 登录
-        Login({ commit }, userInfo) {
+        //登录
+        // promise 处理异步请求成功resolve 失败 reject，
+        // 网络请求不能立即返回结果，我们将其传到另外一个函数里。在数据请求成功时，将数据通过传入的函数回调回去。
+        Login({commit},userInfo){
             const rememberMe = userInfo.rememberMe
-            return new Promise((resolve, reject) => {
-                login(userInfo.username, userInfo.password, userInfo.code, userInfo.uuid).then(res => {
-                    setToken(res.token, rememberMe)
-                    commit('SET_TOKEN', res.token)
-                    setUserInfo(res.user, commit)
+            return new Promise((resolve,reject) => {
+                login(userInfo.username,userInfo.password).then(res => {
+                    setToken(res.token,rememberMe)
+                    commit("SET_TOKEN",res.token)
+                    //setUserInfo(res.user, commit)
                     resolve()
-                }).catch(error => {
-                    reject(error)
-                })
+                }).catch(
+                    err =>{
+                        reject(err)
+                    }
+                )
             })
+            
         },
 
         // 获取用户信息，用作动态路由

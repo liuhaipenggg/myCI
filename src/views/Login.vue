@@ -1,176 +1,150 @@
 <template>
-
-  <div class="login" :style="'background-image:url('+ Background +');'">
+  <div class="login" :style="'background-image:url('+ Background+');'">
     <el-form ref="loginForm" :model="loginForm" :rules="loginRules" label-position="left" label-width="0px" class="login-form">
-      <h3 class="title">
-        EL-ADMIN 后台管理系统
-      </h3>
-      <el-form-item prop="username">
-        <el-input v-model="loginForm.username" type="text" auto-complete="off" placeholder="账号">
-<!--          <svg-icon slot="prefix" icon-class="user" class="el-input__icon input-icon" />-->
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="password">
-        <el-input v-model="loginForm.password" type="password" auto-complete="off" placeholder="密码" @keyup.enter.native="handleLogin">
-<!--          <svg-icon slot="prefix" icon-class="password" class="el-input__icon input-icon" />-->
-        </el-input>
-      </el-form-item>
-      <el-form-item prop="code">
-        <el-input v-model="loginForm.code" auto-complete="off" placeholder="验证码" style="width: 63%" @keyup.enter.native="handleLogin">
-<!--          <svg-icon slot="prefix" icon-class="validCode" class="el-input__icon input-icon" />-->
-        </el-input>
-        <div class="login-code">
-          <img :src="codeUrl" @click="getCode">
-        </div>
-      </el-form-item>
-      <el-checkbox v-model="loginForm.rememberMe" style="margin:0 0 25px 0;">
+      <h3 class="title">我的el-admin</h3>
+    <el-form-item prop="username">
+      <el-input v-model="loginForm.username" type="text" auto-complete="off" placeholder="请输入账号"></el-input>
+    </el-form-item>
+    <el-form-item prop="password">
+        <el-input v-model="loginForm.password" type="password" auto-complete="off" placeholder="密码"></el-input>
+    </el-form-item>
+    <el-checkbox v-model="loginForm.rememberMe" style="margin:0 0 25px 0;">
         记住我
-      </el-checkbox>
-      <el-form-item style="width:100%;">
+    </el-checkbox>
+    <el-form-item style="width:100%;">
         <el-button :loading="loading" size="medium" type="primary" style="width:100%;" @click.native.prevent="handleLogin">
           <span v-if="!loading">登 录</span>
           <span v-else>登 录 中...</span>
         </el-button>
-      </el-form-item>
+    </el-form-item>
     </el-form>
   </div>
 </template>
 
 <script>
 import Background from '@/assets/images/background.jpeg'
-import { encrypt} from '@/utils/rsaEncrypt'
+import {encrypt} from "@/utils/rsaEncrypt"
+import request from '@/utils/request'
 import Cookies from 'js-cookie'
 import Config from '@/settings'
-import {getCodeImg} from "@/api/login";
-export default {
-  name: "Login",
-  created() {
-    this.getCode()
-    this.getCookie()
-  },
+
+export default{
+  name: 'Login',
   data(){
-    return {
+    return{
+      Background: Background,
       loginForm: {
-        username: 'admin',
-        password: '123456',
-        code: '',
+        username: '',
+        password: '',
         rememberMe: false,
-        uuid: ''
       },
       loginRules: {
         username: [{required: true, trigger: 'blur', message: '用户名不能为空'}],
         password: [{required: true, trigger: 'blur', message: '密码不能为空'}],
-        code: [{required: true, trigger: 'blur', message: '验证码不能为空'}]
       },
-      Background : Background,
-      codeUrl : '',
-      loading : false,
-      //把加密后的密码存放到Cookies
-      cookiePass: ''
+      loading: false
     }
   },
+  created(){
+    this.getCookie()
+    console.log(Cookies.get(Config.TokenKey))
+  },
   methods: {
-    getCookie() {
+    getCookie(){
+      console.log(Cookies)
       const username = Cookies.get('username')
       let password = Cookies.get('password')
       const rememberMe = Cookies.get('rememberMe')
-      // 保存cookie里面的加密后的密码
       this.cookiePass = password === undefined ? '' : password
       password = password === undefined ? this.loginForm.password : password
-      this.loginForm = {
+      this.loginForm ={
         username: username === undefined ? this.loginForm.username : username,
         password: password,
-        rememberMe: rememberMe === undefined ? false : Boolean(rememberMe),
-        code: ''
+        rememberMe: rememberMe === undefined ? false : Boolean(rememberMe)
       }
-    },
-    getCode(){
-      //发送请求给后端，需要用到axios
-      getCodeImg().then(res=>{
-        this.codeUrl = res.img
-        this.loginForm.uuid = res.uuid
-      })
     },
     handleLogin(){
       this.$refs.loginForm.validate(valid =>{
-        if (valid){//如果表单校验通过，则发送登陆请求
-          const user = {
-            username: this.loginForm.username,
-            password: this.loginForm.password,
-            rememberMe: this.loginForm.rememberMe,
-            code: this.loginForm.code,
-            uuid: this.loginForm.uuid
-          }
-          if (user.password !== this.cookiePass) {
-            user.password = encrypt(user.password)
-          }
-          if (user.rememberMe) {
+        const user = {
+          username: this.loginForm.username,
+          password: this.loginForm.password,
+          rememberMe: this.loginForm.rememberMe
+        }
+        if (user.password !== this.cookiePass) {
+          user.password = encrypt(user.password)
+        }
+        console.log(user.rememberMe)
+        if(valid){
+          this.loading = true
+          if(user.rememberMe){
             Cookies.set('username', user.username, { expires: Config.passCookieExpires })
-            Cookies.set('password', user.password, { expires: Config.passCookieExpires })
-            Cookies.set('rememberMe', user.rememberMe, { expires: Config.passCookieExpires })
-          } else {
+            Cookies.set('password',user.password,{ expires: Config.passCookieExpires })
+            Cookies.set('rememberMe',user.rememberMe,{ expires: Config.passCookieExpires })
+          }else{
             Cookies.remove('username')
             Cookies.remove('password')
             Cookies.remove('rememberMe')
           }
-          this.loading = true
-          this.$store.dispatch('Login', user).then(res=>{
-            this.$router.push('/')
-          }).catch(()=>{
+          // request.post('auth/login',user).then(res => {
+          // // console.log(res)
+          // this.$router.push('/')
+          // })
+          this.$store.dispatch('Login',user).then(res => {
             this.loading = false
-            this.getCode()
+            this.$router.push('/')
+          }).catch(err => {
+            this.loading = false
           })
-        }else alert('请按要求完善登陆信息！')
+          
+        }else alert("请完善")
       })
-
     }
   }
 }
 </script>
 
-
 <style rel="stylesheet/scss" lang="scss">
-.login {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  background-size: cover;
-}
-.title {
-  margin: 0 auto 30px auto;
-  text-align: center;
-  color: #707070;
-}
+  .login {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    background-size: cover;
+  }
+  .title {
+    margin: 0 auto 30px auto;
+    text-align: center;
+    color: #707070;
+  }
 
-.login-form {
-  border-radius: 6px;
-  background: #ffffff;
-  width: 385px;
-  padding: 25px 25px 5px 25px;
-  .el-input {
-    height: 38px;
-    input {
+  .login-form {
+    border-radius: 6px;
+    background: #ffffff;
+    width: 385px;
+    padding: 25px 25px 5px 25px;
+    .el-input {
       height: 38px;
+      input {
+        height: 38px;
+      }
+    }
+    .input-icon{
+      height: 39px;width: 14px;margin-left: 2px;
     }
   }
-  .input-icon{
-    height: 39px;width: 14px;margin-left: 2px;
+  .login-tip {
+    font-size: 13px;
+    text-align: center;
+    color: #bfbfbf;
   }
-}
-.login-tip {
-  font-size: 13px;
-  text-align: center;
-  color: #bfbfbf;
-}
-.login-code {
-  width: 33%;
-  display: inline-block;
-  height: 38px;
-  float: right;
-  img{
-    cursor: pointer;
-    vertical-align:middle
+  .login-code {
+    width: 33%;
+    display: inline-block;
+    height: 38px;
+    float: right;
+    img{
+      cursor: pointer;
+      vertical-align:middle
+    }
   }
-}
 </style>
