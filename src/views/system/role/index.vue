@@ -125,7 +125,7 @@
 </template>
 
 <script>
-import {getDepts} from '@/api/dept'
+import {getDepts,getDeptSuperior} from '@/api/dept'
 import store from '@/store'
 import Treeselect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
@@ -196,7 +196,7 @@ export default{
         // 部门懒加载
         loadDepts({action,parentNode,callback}){
             console.log('调用中1')
-            // if(action === LOAD_CHILDREN_OPTIONS){
+             if(action === LOAD_CHILDREN_OPTIONS){
                 console.log('调用中2')
                 getDepts({enabled: true, pid: parentNode.id}).then(res =>{
                     console.log('调用中',res)
@@ -211,7 +211,7 @@ export default{
                         callback()
                     }, 200)
                 })
-            // }
+             }
         },
         // loadDepts({action, parentNode, callback}) {
         //     if (action === LOAD_CHILDREN_OPTIONS) {
@@ -255,11 +255,56 @@ export default{
                 this.getInitDepts()
             }
         },
+
+        // 遍历构造树,其实是给下拉箭头
+        buildDepts(nodes){
+            nodes.forEach(node => {
+                // 树的深度遍历，如果有子树，则继续遍历
+                if(node.children){
+                    buildDepts(node.children)
+                }
+                if(node.hasChildren && !node.children) node.children = null 
+            })
+        },
+
         updateOperation(op){
             this.dialogFormVisible = op !== 'delete' ? true : false 
             this.$store.commit("SET_OP",op)
+            if(op === 'post'){
+                // 给form赋空值，不然form中保留原来角色的值（特别是id），无法给后端处理
+                // 对象
+                this.form = {}
+                this.deptDatas = []
+            }
+            if(op === 'put'){
+                this.form = {...this.selectData[0]}
+                // 如果用户之前没有加载表单里的树结构，那么这里将无法显示
+                 if(this.form.dataScope === '自定义'){
+                    // 其实不加也不影响角色数据更新
+                    
+                    // 把目标角色的原全部部门id都拿出来
+                    this.deptDatas = this.selectData[0].depts.map(val => {
+                        return  val.id
+                     })
+                     console.log(this.deptDatas)
+                    //  请求同级和上级
+                     getDeptSuperior(this.deptDatas).then(res => {
+                        let depts = res.content
+                        console.log(depts)
+                        // 这样不行，这样树会丧失结构
+                        // this.depts = this.depts.map(function(obj){
+                        //     if(obj.hasChildren){
+                        //         obj.children = null
+                        //     }
+                        // })
+                        this.buildDepts(depts)
+                        this.depts = depts
+                     })
+                 }
+            }
             if(op === 'delete')this.updateRole(this.selectData[0])
         },
+        
         // 处理选中
         handleSelectionChange(rows){
             this.selectData = rows
@@ -268,7 +313,7 @@ export default{
             console.log(data)
             let op = this.$store.state.operation
             // 后端要求dept这一项是 传数组回去
-            data.dept = this.deptDatas.map(value => {
+            data.depts = this.deptDatas.map(value => {
                 return {id: value}
             })
             this.$request({url: 'api/roles', method: op, data: data}).then(() =>{

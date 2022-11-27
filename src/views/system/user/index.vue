@@ -226,7 +226,11 @@ export default{
             // this.form.nickName = user.nickName
             // this.form.phone = user.phone
             // this.form.email = user.email
-            this.form = user
+
+            // 不能直接这样拷贝赋值，因为指针的关系，这样子这两个对象实际上是一样的
+            // this.form = user
+            // 应该新建新对象再拷贝赋值
+            this.form = {...user}
             console.log(this.form.enabled)
         },
         updateOperation(op){
