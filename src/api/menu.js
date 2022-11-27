@@ -8,6 +8,14 @@ export function getChild(id){
 
 }
 
+export function del(ids){
+    return request({
+        url: 'api/roles',
+        method: 'delete',
+        data: ids
+    })
+}
+
 // export function getDeptSuperior(ids){
 //     // 将值变成数组
 //     //             是数组吗             数组长度为0也直接返回 

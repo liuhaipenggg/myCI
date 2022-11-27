@@ -302,7 +302,15 @@ export default{
                      })
                  }
             }
-            if(op === 'delete')this.updateRole(this.selectData[0])
+            if(op === 'delete'){
+                const ids = this.selectData.map(val => {
+                    return val.id
+                }) 
+                this.$request({url: 'api/roles', method: op, data: ids}).then(() =>{
+                    Element.Message.success("删除成功")
+                    this.getRoleList()
+                })
+            }
         },
         
         // 处理选中
