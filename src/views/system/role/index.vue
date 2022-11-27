@@ -34,7 +34,7 @@
                         <span class="role-span">角色列表</span>
                     </div>
                     <!-- 选中复选框和该行时都可以触发 -->
-                    <el-table :data="tableData" style="width: 100%" @selection-change="handleSelectionChange" highlight-current-row @current-change="handlecurrentchange">
+                    <el-table :data="tableData" style="width: 100%" @selection-change="handleSelectionChange" highlight-current-row @current-change="handlecurrentchange" v-loading="loading">
                         <!-- 表格的选择框 --> 
                         <el-table-column type="selection" width="55px"></el-table-column>
                         <el-table-column fixed prop="name" label="名称" width="150"></el-table-column>
@@ -43,6 +43,16 @@
                         <el-table-column prop="description" label="描述" width="150"></el-table-column>
                         <el-table-column prop="createTime" label="创建日期" width="150"></el-table-column>
                     </el-table>
+                    <!-- 增加和删除时，需要考虑页数是否改变 -->
+                    <el-pagination
+                    :page-size.sync="page.size"
+                    :total="page.total"
+                    :current-page.sync="page.page"
+                    style="margin-top: 8px"
+                    layout="total, prev, pager, next, sizes"
+                    @size-change="sizeChangeHandler"
+                    @current-change="pageChangeHandler"
+                    />
                 </el-card>
             </el-col> 
 
@@ -130,17 +140,25 @@ import store from '@/store'
 import Treeselect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import {LOAD_CHILDREN_OPTIONS} from '@riophae/vue-treeselect'
-import Element from 'element-ui'
+import Element, { Pagination } from 'element-ui'
 import {getChild} from '@/api/menu'
 
 export default{
     name: 'Role',
-    components: {Treeselect},
+    components: { Treeselect, Pagination },
     created(){
-        this.getRoleList()
+        this.refresh()
     },
     data(){
         return{
+            // 分页相关属性
+            page: {
+                total: 3,
+                size: 10,
+                page: 1
+            },
+            loading: true,
+
             // 菜单权限相关值
             menuIds: [],
             // 菜单权限树的结构
@@ -187,10 +205,24 @@ export default{
         }
     },
     methods: {
-        getRoleList(){
-            this.$request.get('api/roles/all').then(res => {
+        sizeChangeHandler(size){
+            this.page.size = size
+            this.page.page = 1
+            this.loading =true
+            this.refresh()
+        },
+        pageChangeHandler(page){
+            this.page.page = page
+            this.loading =true
+            this.refresh()
+        },
+        refresh(){
+            this.$request.get('api/roles',{params: {page: this.page.page - 1, size:this.page.size}}).then(res => {
                 console.log(res)
-                this.tableData = res
+                this.tableData = res.content
+                this.page.total = res.totalElements
+                console.log("长度",this.tableData.length)
+                this.loading = false
             })
         },
         // 部门懒加载
@@ -308,7 +340,7 @@ export default{
                 }) 
                 this.$request({url: 'api/roles', method: op, data: ids}).then(() =>{
                     Element.Message.success("删除成功")
-                    this.getRoleList()
+                    this.refresh()
                 })
             }
         },
@@ -327,8 +359,13 @@ export default{
             this.$request({url: 'api/roles', method: op, data: data}).then(() =>{
                 this.dialogFormVisible = false
                 Element.Message.success("操作成功")
-                this.getRoleList()
             })
+            if(op === 'post'){
+                const nowPage =  Math.floor(this.page.total / this.page.size + 1)
+                this.page.page = nowPage
+                console.log(this.page.page)
+            }
+            this.refresh()
         },
 
         // 菜单相关方法
@@ -398,7 +435,7 @@ export default{
             console.log(data)
             this.$request.put('api/roles/menu',data).then(() => {
                 Element.Message.success('保存当前角色新的菜单列表成功')
-                this.getRoleList()
+                this.refresh()
             }).catch(err => {
                 console.log(err)
             })
