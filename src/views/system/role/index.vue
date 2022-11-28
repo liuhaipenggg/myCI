@@ -141,24 +141,21 @@ import Treeselect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import {LOAD_CHILDREN_OPTIONS} from '@riophae/vue-treeselect'
 import Element, { Pagination } from 'element-ui'
-import {getChild} from '@/api/menu'
+import {getChild} from '@/api/menu';
+import crud from '@/components/Crud/crud';
 
 export default{
     name: 'Role',
     components: { Treeselect, Pagination },
+    mixins: [crud],
     created(){
-        this.refresh()
+        this.$nextTick(() => {
+            this.refresh()
+        })
     },
     data(){
         return{
-            // 分页相关属性
-            page: {
-                total: 3,
-                size: 10,
-                page: 1
-            },
-            loading: true,
-
+            
             // 菜单权限相关值
             menuIds: [],
             // 菜单权限树的结构
@@ -200,30 +197,14 @@ export default{
                     { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
                 ]
             },
-            tableData: [],
             dialogFormVisible: false
         }
     },
     methods: {
-        sizeChangeHandler(size){
-            this.page.size = size
-            this.page.page = 1
-            this.loading =true
-            this.refresh()
-        },
-        pageChangeHandler(page){
-            this.page.page = page
-            this.loading =true
-            this.refresh()
-        },
-        refresh(){
-            this.$request.get('api/roles',{params: {page: this.page.page - 1, size:this.page.size}}).then(res => {
-                console.log(res)
-                this.tableData = res.content
-                this.page.total = res.totalElements
-                console.log("长度",this.tableData.length)
-                this.loading = false
-            })
+        beforeInit(){
+            this.url = 'api/roles'
+            this.$refs.menu.setCheckedKeys([])
+            return true
         },
         // 部门懒加载
         loadDepts({action,parentNode,callback}){
