@@ -34,7 +34,7 @@
                         <span class="role-span">角色列表</span>
                     </div>
                     <!-- 选中复选框和该行时都可以触发 -->
-                    <el-table :data="tableData" style="width: 100%" @selection-change="handleSelectionChange" highlight-current-row @current-change="handlecurrentchange" v-loading="loading">
+                    <el-table :data="crud.tableData" style="width: 100%" @selection-change="handleSelectionChange" highlight-current-row @current-change="handlecurrentchange" v-loading="crud.loading">
                         <!-- 表格的选择框 --> 
                         <el-table-column type="selection" width="55px"></el-table-column>
                         <el-table-column fixed prop="name" label="名称" width="150"></el-table-column>
@@ -45,13 +45,13 @@
                     </el-table>
                     <!-- 增加和删除时，需要考虑页数是否改变 -->
                     <el-pagination
-                    :page-size.sync="page.size"
-                    :total="page.total"
-                    :current-page.sync="page.page"
+                    :page-size.sync="crud.page.size"
+                    :total="crud.page.total"
+                    :current-page.sync="crud.page.page"
                     style="margin-top: 8px"
                     layout="total, prev, pager, next, sizes"
-                    @size-change="sizeChangeHandler"
-                    @current-change="pageChangeHandler"
+                    @size-change="crud.sizeChangeHandler"
+                    @current-change="crud.pageChangeHandler"
                     />
                 </el-card>
             </el-col> 
@@ -141,24 +141,24 @@ import Treeselect from '@riophae/vue-treeselect'
 import '@riophae/vue-treeselect/dist/vue-treeselect.css'
 import {LOAD_CHILDREN_OPTIONS} from '@riophae/vue-treeselect'
 import Element, { Pagination } from 'element-ui'
-import {getChild} from '@/api/menu'
+import {getChild} from '@/api/menu';
+import CRUD,{presenter} from '@/components/Crud/crud';
+
+// const crud = CRUD({title: '角色',url: 'api/roles'})
 
 export default{
     name: 'Role',
+    cruds(){
+        return CRUD({title: '角色',url: 'api/roles'})
+    },
     components: { Treeselect, Pagination },
+    mixins: [presenter()],
     created(){
-        this.refresh()
+        this.crud.refresh()
     },
     data(){
         return{
-            // 分页相关属性
-            page: {
-                total: 3,
-                size: 10,
-                page: 1
-            },
-            loading: true,
-
+            
             // 菜单权限相关值
             menuIds: [],
             // 菜单权限树的结构
@@ -200,30 +200,24 @@ export default{
                     { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
                 ]
             },
-            tableData: [],
             dialogFormVisible: false
         }
     },
     methods: {
-        sizeChangeHandler(size){
-            this.page.size = size
-            this.page.page = 1
-            this.loading =true
-            this.refresh()
+        // 刷新后做的操作
+        [CRUD.HOOK.afterRefresh]() {
+            this.$refs.menu.setCheckedKeys([])//清空选中菜单
         },
-        pageChangeHandler(page){
-            this.page.page = page
-            this.loading =true
-            this.refresh()
-        },
-        refresh(){
-            this.$request.get('api/roles',{params: {page: this.page.page - 1, size:this.page.size}}).then(res => {
-                console.log(res)
-                this.tableData = res.content
-                this.page.total = res.totalElements
-                console.log("长度",this.tableData.length)
-                this.loading = false
-            })
+        // 提交前做的操作
+        [CRUD.HOOK.afterValidateCU]() {
+            if (this.form.dataScope === '自定义' && this.deptDatas.length === 0) {
+                this.$message({
+                    message: '自定义数据权限不能为空',
+                    type: 'warning'
+                })
+                return false
+            }
+            return true
         },
         // 部门懒加载
         loadDepts({action,parentNode,callback}){
@@ -340,7 +334,8 @@ export default{
                 }) 
                 this.$request({url: 'api/roles', method: op, data: ids}).then(() =>{
                     Element.Message.success("删除成功")
-                    this.refresh()
+                    this.crud.delChangeHandler()
+                    this.crud.refresh()
                 })
             }
         },
@@ -361,11 +356,11 @@ export default{
                 Element.Message.success("操作成功")
             })
             if(op === 'post'){
-                const nowPage =  Math.floor(this.page.total / this.page.size + 1)
-                this.page.page = nowPage
-                console.log(this.page.page)
+                const nowPage =  Math.floor(this.crud.page.total / this.crud.page.size + 1)
+                this.crud.page.page = nowPage
+                console.log("post",this.crud.page.page)
             }
-            this.refresh()
+            this.crud.refresh()
         },
 
         // 菜单相关方法
@@ -435,7 +430,7 @@ export default{
             console.log(data)
             this.$request.put('api/roles/menu',data).then(() => {
                 Element.Message.success('保存当前角色新的菜单列表成功')
-                this.refresh()
+                this.crud.refresh()
             }).catch(err => {
                 console.log(err)
             })

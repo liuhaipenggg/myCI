@@ -106,7 +106,7 @@
         </el-dialog>
 
         <!-- 用户表格 -->
-        <el-table ref="multipleTable" :data="tableData" tooltip-effect="dark" style="width: 100%" @selection-change="handleSelectionChange"  >
+        <el-table ref="multipleTable" :data="tableData" tooltip-effect="dark" style="width: 100%" @selection-change="handleSelectionChange" v-loading="loading" >
             <!-- 多选框 -->
             <el-table-column type="selection" width="55" ></el-table-column>
             <el-table-column prop="username" label="用户名" width="120"></el-table-column>
@@ -131,17 +131,30 @@
             <el-table-column prop="createTime" label="创建日期" width="200"></el-table-column>
             <!-- <el-table-column prop="dept" label="操作" width="120"></el-table-column> -->
         </el-table>
+        <el-pagination
+        :page-size.sync="page.size"
+        :total="page.total"
+        :current-page.sync="page.page"
+        style="margin-top: 8px"
+        layout="total, prev, pager, next, sizes"
+        @size-change="sizeChangeHandler"
+        @current-change="pageChangeHandler"
+        />
     </div>
 </template>
 
 <script>
 import {getDepts} from '@/api/dept'
 import Element from 'element-ui'
+import crud from '@/components/Crud/crud'
  
 export default{
     name: 'User',
+    mixins: [crud],
     created(){
-        this.getUserInfo()
+        this.$nextTick(() => {
+            this.refresh()
+        })
         this.dialogFormVisible = false
     },
     data(){
@@ -172,7 +185,6 @@ export default{
                 isLeaf: 'leaf'
             },
             jobDatas:[],
-            tableData: [],
             dialogFormVisible: false,
             rules: {
                 username: [
@@ -208,12 +220,16 @@ export default{
         }
     },
     methods: {
-        getUserInfo(){
-            this.$request.get('api/users').then(res => {
-                // console.log(res)
-                this.tableData = res.content
-            })
+        beforeInit(){
+            this.url = 'api/users'
+            return true
         },
+        // getUserInfo(){
+        //     this.$request.get('api/users').then(res => {
+        //         // console.log(res)
+        //         this.tableData = res.content
+        //     })
+        // },
         //修改用户时，将数据渲染到表格里
         mapForm(user){
            this.dept = user.dept.name
@@ -287,7 +303,7 @@ export default{
             this.$request({url: 'api/users', method: op, data: data}).then(() =>{
                 this.dialogFormVisible = false
                 Element.Message.success("操作成功")
-                this.getUserInfo()
+                this.refresh()
             })
         },
 
