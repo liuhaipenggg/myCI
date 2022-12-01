@@ -11,7 +11,7 @@ import '@/assets/icons/index'
 import 'default-passive-events' //解决新版的Chrome浏览器警告
 
 // 自定义指令在Vue中全局注册
-import permission from '@/components/permission'
+import permission from '@/components/Permission'
 
 Vue.use(Element)
 Vue.config.productionTip = false
