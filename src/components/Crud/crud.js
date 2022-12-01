@@ -5,7 +5,7 @@ function CRUD(options){
     const data = {
         ...options,
         tableData: [],
-
+        tag: "default",
             // 分页相关属性
          page: {
             total: 3,
@@ -28,7 +28,7 @@ function CRUD(options){
                 this.page.total = res.totalElements
                 console.log("长度",this.tableData.length)
                 this.loading = false
-                callVmHook(crud,CRUD.HOOK.afterRefreshcrud)
+                callVmHook(crud,CRUD.HOOK.afterRefresh)
             }).catch(err => {
                 console.log(err)
                 this.loading = false
@@ -145,8 +145,26 @@ export function presenter(crud){
             }
         },
         beforeCreate(){
-            this.crud = crud
-            this.crud.registerVM('presenter',this,0)
+            if(crud){
+                this.crud = crud
+                this.crud.registerVM('presenter',this,0)
+                return
+            }
+            this.$cruds = this.$cruds || {}
+
+            let cruds = this.$options.cruds instanceof Function ? this.$options.cruds() : crud
+            if(!(cruds instanceof Array)){
+                cruds = [cruds]
+            }
+            // ele === crudInstance
+            cruds.forEach( ele => {
+                if(this.$cruds[ele.tag]){
+                    console.log("this.$cruds["+ele.tag+"] is already exist");
+                }
+                this.$cruds[ele.tag] = ele
+                ele.registerVM('presenter', this, 0)
+            })
+            this.crud = this.$cruds['defalut'] || cruds[0]
         },
         destroyed(){
             this.crud.unregister(this)

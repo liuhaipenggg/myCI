@@ -144,14 +144,17 @@ import Element, { Pagination } from 'element-ui'
 import {getChild} from '@/api/menu';
 import CRUD,{presenter} from '@/components/Crud/crud';
 
-const crud = CRUD({title: '角色',url: 'api/roles'})
+// const crud = CRUD({title: '角色',url: 'api/roles'})
 
 export default{
     name: 'Role',
+    cruds(){
+        return CRUD({title: '角色',url: 'api/roles'})
+    },
     components: { Treeselect, Pagination },
-    mixins: [presenter(crud)],
+    mixins: [presenter()],
     created(){
-        crud.refresh()
+        this.crud.refresh()
     },
     data(){
         return{
@@ -355,7 +358,7 @@ export default{
             if(op === 'post'){
                 const nowPage =  Math.floor(this.crud.page.total / this.crud.page.size + 1)
                 this.crud.page.page = nowPage
-                console.log(this.crud.page.page)
+                console.log("post",this.crud.page.page)
             }
             this.crud.refresh()
         },
