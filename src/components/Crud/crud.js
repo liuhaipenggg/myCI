@@ -166,6 +166,9 @@ export function presenter(crud){
             })
             this.crud = this.$cruds['defalut'] || cruds[0]
         },
+        create(){
+            this.crud.refresh()
+        },
         destroyed(){
             this.crud.unregister(this)
         }
