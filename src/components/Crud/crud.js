@@ -1,6 +1,14 @@
 import {initData} from '@/api/data'
 import Vue from 'vue'
 
+
+/**
+ * CRUD配置
+ * @param {*} options <br>
+ * @return crud instance.
+ * @example
+ * 要使用多crud时，请在关联crud的组件处使用crud-tag进行标记，如：<jobForm :job-status="dict.job_status" crud-tag="job" />
+ */
 function CRUD(options){
     const data = {
         ...options,
@@ -12,9 +20,12 @@ function CRUD(options){
             size: 10,
             page: 1
          },
+         
          loading: true,
          
          params: {},
+
+         selectData: []
     }
 
     const methods = {
@@ -54,6 +65,9 @@ function CRUD(options){
         // 扩展crud的数据
         updateProp(name, value) {
             Vue.set(crud.props, name, value)
+        },
+        updateOperation(op){
+            callVmHook(crud,CRUD.HOOK.updateOperation,op)
         }
     }
 
@@ -109,22 +123,32 @@ function CRUD(options){
     return crud
 } 
 
+// arguments 隐藏参数
 function callVmHook(crud, hook){
     let ret = true
 
+    const nargs = [crud]
+    for(let i = 2; i < arguments.length; ++i){
+        nargs.push(arguments[i])
+    }
+
+    // set就是去重集合
     const vmSet = new Set()
     // 所有vm都拿出来吗？
     console.log(this)
     console.log('vms',crud.vms)
-    crud.vms.forEach(vm => vm && vmSet.add(vm,vm));
-
+    crud.vms.forEach(vm => vm && vmSet.add(vm.vm));
+    console.log('vmSet',vmSet)
+    
     vmSet.forEach(vm => {
+        console.log(vm)
         if(vm[hook]){
-            console.log(vm[hook])
-           ret = vm[hook].apply() !== false && ret 
+           ret = vm[hook].apply(vm,nargs) !== false && ret 
+        }else{
+            console.log("error");
         }
     })
-
+    console.log(ret)
     return ret
 }
 
@@ -133,11 +157,14 @@ CRUD.HOOK = {
     afterRefresh: 'afterCrudRefresh',
     /** "新建/编辑" 验证 - 之后 */
     afterValidateCU: 'afterCrudValidateCU',
+
+    // 增删改查按钮，表单显示
+    updateOperation: 'updateOperation'
 }
 
 
 // presenter()函数里this 是调用它的Vue组件      相对的   CRUD函数里的this是crud这个组件
-export function presenter(crud){
+function presenter(crud){
     return {
         data(){
             return {
@@ -175,68 +202,57 @@ export function presenter(crud){
     }
 }
 
-export default CRUD
-
-
-/*
-export default{
-    data(){
-        return {
-            tableData: [],
-
-            // 分页相关属性
-            page: {
-                total: 3,
-                size: 10,
-                page: 1
-            },
-            loading: true,
-
-            // url 和所需参数
-            url: '',
-            params: {},
-
-        }
-    },
-    methods: {
-        refresh(){
-            this.loading = true
-            // 执行beforeInit()，获取url和参数 ，并返回null
-            if(!this.beforeInit()){
-                return
+function crud(options= {}){
+    const defaultOptions = {
+        type: undefined
+    }
+    options = mergeOptions(defaultOptions,options)
+    return {
+        data(){
+            return {
+                crud: this.crud
             }
-            console.log(this.url)
-            console.log("this")
-            initData(this.url,{page: this.page.page - 1, size: this.page.size}).then(res => {
-                this.tableData = res.content
-                this.page.total = res.totalElements
-                console.log("长度",this.tableData.length)
-                this.loading = false
-            }).catch(err => {
-                console.log(err)
-                this.loading = false
-            })
         },
-        // 该函数不会执行，因为会和混合的组件中的同名方法合并
-        beforeInit(){
-            return false
+        beforeCreate(){
+            // 从父组件获取crud
+            this.crud = lookupCrud(this)
+            this.crud.registerVM(options.type,this)
         },
-        sizeChangeHandler(size){
-            this.page.size = size
-            this.page.page = 1
-            this.loading =true
-            this.refresh()
-        },
-        pageChangeHandler(page){
-            this.page.page = page
-            this.loading =true
-            this.refresh()
-        },
-        delChangeHandler(){
-            if(this.tableData.length == 1 && this.page.page !== 1){
-                this.page.page = this.page.page - 1
-            }
+        destroyed(){
+            this.crud.unregister(options.type,this)
         }
     }
 }
-*/
+
+// 主要从父组件的presenter函数创建的crud数组里找
+function lookupCrud(vm,tag){
+    tag = tag || vm.$attrs["crud-tag"] || 'default'
+
+    if(vm.$cruds){
+        const ret = vm.$cruds[tag]
+        if(ret){
+            return ret
+        }
+    }
+    else {
+        return vm.$parent ? lookupCrud(vm.$parent,tag) : undefined
+    }
+}
+
+function  mergeOptions(src,opts){
+    const optsRet = {
+        ...src
+    }
+    for(const key in src){
+        if(opts.hasOwnProperty(key)){
+            optsRet[key] = opts[key]
+        }
+    }
+    return optsRet
+}
+export {
+    presenter,
+    crud
+}
+
+export default CRUD

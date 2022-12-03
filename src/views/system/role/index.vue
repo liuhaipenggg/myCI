@@ -1,31 +1,8 @@
 <!-- 角色管理界面 -->
 <template>
     <div>
-        <div class="crud-opts">
-            <span class="left">
-                <slot name="left"></slot>
-                <el-button class="filter-item" 
-                size="mini" 
-                type="primary" 
-                icon="el-icon-plus"  
-                v-permission= "['role:add']"
-                @click="updateOperation('post')">
-                    新增
-                </el-button>
-                <el-button class="filter-item" size="mini" type="success" icon="el-icon-edit" :disabled="selectData.length !==1" v-permission= "['role:edit']" @click="updateOperation('put')">
-                    修改
-                </el-button>
-                <el-button class="filter-item" size="mini" type="danger" icon="el-icon-delete" v-permission= "['role:delete']" @click="updateOperation('delete')">
-                    删除
-                </el-button>
-                <el-button class="filter-item" size="mini" type="warning" v-permission= "['role:list']" icon="el-icon-download">
-                    导出
-                </el-button>
-                <slot name="right">
-                    <el-button></el-button>
-                </slot>
-            </span>
-        </div>
+        <!-- 增删改查按钮 -->
+        <crudOperation></crudOperation>
         <el-row :gutter="15">
             <!-- 角色显示表格 -->
             <el-col :xs="24" :sm="24" :md="16" :lg="16" :xl="17" style="margin-bottom: 10px">
@@ -143,6 +120,7 @@ import {LOAD_CHILDREN_OPTIONS} from '@riophae/vue-treeselect'
 import Element, { Pagination } from 'element-ui'
 import {getChild} from '@/api/menu';
 import CRUD,{presenter} from '@/components/Crud/crud';
+import crudOperation from '../../../components/Crud/CRUD.operation.vue'
 
 // const crud = CRUD({title: '角色',url: 'api/roles'})
 
@@ -151,7 +129,7 @@ export default{
     cruds(){
         return CRUD({title: '角色',url: 'api/roles'})
     },
-    components: { Treeselect, Pagination },
+    components: { Treeselect, Pagination ,crudOperation},
     mixins: [presenter()],
     created(){
         this.crud.refresh()
@@ -170,7 +148,7 @@ export default{
             currentId: [],
 
             // 角色相关值
-            selectData: [],
+            
             deptDatas: [],
             depts: [],
             props:{
@@ -206,6 +184,7 @@ export default{
     methods: {
         // 刷新后做的操作
         [CRUD.HOOK.afterRefresh]() {
+            console.log("success")
             this.$refs.menu.setCheckedKeys([])//清空选中菜单
         },
         // 提交前做的操作
@@ -292,8 +271,8 @@ export default{
                 if(node.hasChildren && !node.children) node.children = null 
             })
         },
-
-        updateOperation(op){
+        [CRUD.HOOK.updateOperation](crud,op){
+            console.log(op);
             this.dialogFormVisible = op !== 'delete' ? true : false 
             this.$store.commit("SET_OP",op)
             if(op === 'post'){
@@ -303,13 +282,13 @@ export default{
                 this.deptDatas = []
             }
             if(op === 'put'){
-                this.form = {...this.selectData[0]}
+                this.form = {...this.crud.selectData[0]}
                 // 如果用户之前没有加载表单里的树结构，那么这里将无法显示
                  if(this.form.dataScope === '自定义'){
                     // 其实不加也不影响角色数据更新
                     
                     // 把目标角色的原全部部门id都拿出来
-                    this.deptDatas = this.selectData[0].depts.map(val => {
+                    this.deptDatas = this.crud.selectData[0].depts.map(val => {
                         return  val.id
                      })
                      console.log(this.deptDatas)
@@ -329,7 +308,7 @@ export default{
                  }
             }
             if(op === 'delete'){
-                const ids = this.selectData.map(val => {
+                const ids = this.crud.selectData.map(val => {
                     return val.id
                 }) 
                 this.$request({url: 'api/roles', method: op, data: ids}).then(() =>{
@@ -342,7 +321,7 @@ export default{
         
         // 处理选中
         handleSelectionChange(rows){
-            this.selectData = rows
+            this.crud.selectData = rows
         },
         updateRole(data){
             console.log(data)
@@ -355,7 +334,7 @@ export default{
                 this.dialogFormVisible = false
                 Element.Message.success("操作成功")
             })
-            if(op === 'post'){
+            if(op === 'put'){
                 const nowPage =  Math.floor(this.crud.page.total / this.crud.page.size + 1)
                 this.crud.page.page = nowPage
                 console.log("post",this.crud.page.page)
