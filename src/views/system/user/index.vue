@@ -1,30 +1,9 @@
 <template>
     <div id="app-container">
-        <div class="crud-opts">
-            <span class="left">
-                <slot name="left"></slot>
-                <el-button class="filter-item" 
-                size="mini" 
-                type="primary" 
-                icon="el-icon-plus"  
-                v-permission= "['user:add']"
-                @click="updateOperation('post')">
-                    新增
-                </el-button>
-                <el-button class="filter-item" size="mini" type="success" icon="el-icon-edit" :disabled="selectData.length !==1" v-permission= "['user:edit']" @click="updateOperation('put')">
-                    修改
-                </el-button>
-                <el-button class="filter-item" size="mini" type="danger" icon="el-icon-delete" v-permission= "['user:delete']" @click="updateOperation('delete')">
-                    删除
-                </el-button>
-                <el-button class="filter-item" size="mini" type="warning" v-permission= "['user:list']" icon="el-icon-download">
-                    导出
-                </el-button>
-                <slot name="right">
-                    <el-button></el-button>
-                </slot>
-            </span>
-        </div>
+        
+        <!-- 增删改查按钮 -->
+        <crudOperation></crudOperation>
+
         <!-- 新增表单 渲染 -->
         <el-dialog append-to-body title="用户信息" :visible.sync="dialogFormVisible" width="650px">
             <el-form ref="form" :inline="true" :model="form" :rules="rules" size="small" label-width="66px">
@@ -106,7 +85,7 @@
         </el-dialog>
 
         <!-- 用户表格 -->
-        <el-table ref="multipleTable" :data="tableData" tooltip-effect="dark" style="width: 100%" @selection-change="handleSelectionChange" v-loading="loading" >
+        <el-table ref="multipleTable" :data="crud.tableData" tooltip-effect="dark" style="width: 100%" @selection-change="handleSelectionChange" v-loading="crud.loading" >
             <!-- 多选框 -->
             <el-table-column type="selection" width="55" ></el-table-column>
             <el-table-column prop="username" label="用户名" width="120"></el-table-column>
@@ -132,13 +111,13 @@
             <!-- <el-table-column prop="dept" label="操作" width="120"></el-table-column> -->
         </el-table>
         <el-pagination
-        :page-size.sync="page.size"
-        :total="page.total"
-        :current-page.sync="page.page"
+        :page-size.sync="crud.page.size"
+        :total="crud.page.total"
+        :current-page.sync="crud.page.page"
         style="margin-top: 8px"
         layout="total, prev, pager, next, sizes"
-        @size-change="sizeChangeHandler"
-        @current-change="pageChangeHandler"
+        @size-change="crud.sizeChangeHandler"
+        @current-change="crud.pageChangeHandler"
         />
     </div>
 </template>
@@ -146,16 +125,20 @@
 <script>
 import {getDepts} from '@/api/dept'
 import Element from 'element-ui'
-import crud from '@/components/Crud/crud'
- 
+import CRUD,{presenter} from '@/components/Crud/crud'
+import crudOperation from '@/components/Crud/CRUD.operation' 
+import {del} from '@/api/user'
+
 export default{
     name: 'User',
-    mixins: [crud],
+    cruds(){
+        return CRUD({title: "用户",url: 'api/users'}) 
+    },
+    components: {crudOperation},
+    mixins: [presenter()],
     created(){
-        this.$nextTick(() => {
-            this.refresh()
-        })
-        this.dialogFormVisible = false
+        console.log("this",this);
+       this.crud.refresh()
     },
     data(){
         const validPhone = (rule, value, callback) => {
@@ -169,7 +152,7 @@ export default{
         }
         return{
             //选中的数据行
-            selectData:[],
+            // selectData:[],
 
             jobs: [],
             roles: [],
@@ -249,8 +232,10 @@ export default{
             this.form = {...user}
             console.log(this.form.enabled)
         },
-        updateOperation(op){
-            if(op === "put")this.mapForm(this.selectData[0])
+        
+        [CRUD.HOOK.updateOperation](crud,op){
+            console.log("user",op);
+            if(op === "put")this.mapForm(this.crud.selectData[0])
             this.dialogFormVisible = op !== 'delete' ? true : false 
             this.$store.commit("SET_OP",op)
             if(op !== 'delete'){
@@ -262,7 +247,7 @@ export default{
                     // console.log(res)
                     this.roles = res.content
                 })
-            }else this.updateUser(this.selectData.map(value => value.id))
+            }else this.updateUser(this.crud.selectData.map(value => value.id))
             // map函数如何使用？？
         },
         loadDept(node,resolve){
@@ -303,14 +288,14 @@ export default{
             this.$request({url: 'api/users', method: op, data: data}).then(() =>{
                 this.dialogFormVisible = false
                 Element.Message.success("操作成功")
-                this.refresh()
+                this.crud.refresh()
             })
         },
 
         // 处理修改，删除两个按钮
         handleSelectionChange(rows){
-            this.selectData = rows
-            console.log("这是选中的行数据",this.selectData)
+            this.crud.selectData = rows
+            console.log("这是选中的行数据",this.crud.selectData)
         }
     }
 }
