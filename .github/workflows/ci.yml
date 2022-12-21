@@ -20,7 +20,7 @@ jobs:
           node-version: "12.x"
       # 安装依赖
       - name: Installing Dependencies
-        run: yarn install
+        run: npm install
       # 运行代码扫描
       - name: Running Lint
         run: yarn lint
