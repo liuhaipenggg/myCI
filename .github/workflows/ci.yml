@@ -1,6 +1,8 @@
 name: CI
 # 指定在main分支发生pull_request事件时才触发运行工作流程
 on:
+  push:
+    branches: main
   pull_request:
     branches: main
 jobs:
