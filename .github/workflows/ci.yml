@@ -17,10 +17,10 @@ jobs:
         uses: actions/setup-node@v3
         with:
           # vite 需要在 node>=12 的环境下执行
-          node-version: "12.x"
+          node-version: "16.17.1"
       # 安装依赖
       - name: Installing Dependencies
-        run: npm install
+        run: yarn install
       # 运行代码扫描
       - name: Running Lint
         run: yarn lint
