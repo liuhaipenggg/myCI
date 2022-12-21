@@ -31,13 +31,18 @@ function CRUD(options){
     const methods = {
         refresh(){
             this.loading = true
-           
-            console.log(this.url)
-            console.log(this)
-            initData(this.url,{page: this.page.page - 1, size: this.page.size}).then(res => {
+            console.log("page",this.page)
+            initData(this.url,{page: 0, size: 10}).then(res=>{
+                console.log(res)
+            })
+            const queryParams ={page: this.page.page - 1, size: this.page.size}
+            console.log("parms",this.page.page - 1)
+            initData(this.url,queryParams).then(res => {
                 this.tableData = res.content
                 this.page.total = res.totalElements
+                console.log("res",res)
                 console.log("长度",this.tableData.length)
+                console.log("table",this.tableData)
                 this.loading = false
                 callVmHook(crud,CRUD.HOOK.afterRefresh)
             }).catch(err => {
@@ -48,7 +53,6 @@ function CRUD(options){
         
         // 这两个使用crud的函数 是因为this指向调用它的环境组件 ，但这两个函数在dom里直接调用。
         sizeChangeHandler(size){
-            console.log(this)
             crud.page.page = 1
             crud.page.size = size
             crud.refresh()
@@ -58,6 +62,7 @@ function CRUD(options){
             crud.refresh()
         },
         delChangeHandler(){
+            // length为1，如果一次删除多行会有bug
             if(this.tableData.length == 1 && this.page.page !== 1){
                 this.page.page = this.page.page - 1
             }
@@ -135,20 +140,13 @@ function callVmHook(crud, hook){
     // set就是去重集合
     const vmSet = new Set()
     // 所有vm都拿出来吗？
-    console.log(this)
-    console.log('vms',crud.vms)
     crud.vms.forEach(vm => vm && vmSet.add(vm.vm));
-    console.log('vmSet',vmSet)
     
     vmSet.forEach(vm => {
-        console.log(vm)
         if(vm[hook]){
            ret = vm[hook].apply(vm,nargs) !== false && ret 
-        }else{
-            console.log("error");
         }
     })
-    console.log(ret)
     return ret
 }
 
